@@ -1,0 +1,44 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch a known-good conformance vector
+        shell: bash
+        run: >
+          curl -fsSL -o good.loomseal.json
+          https://raw.githubusercontent.com/kordloom/loomseal/main/testdata/vectors/span-valid.loomseal.json
+
+      - name: A valid bundle verifies
+        uses: ./
+        with:
+          bundle: good.loomseal.json
+
+      - name: Fetch a tampered conformance vector
+        shell: bash
+        run: >
+          curl -fsSL -o bad.loomseal.json
+          https://raw.githubusercontent.com/kordloom/loomseal/main/testdata/vectors/tampered-payload.loomseal.json
+
+      - name: A tampered bundle must fail
+        id: bad
+        continue-on-error: true
+        uses: ./
+        with:
+          bundle: bad.loomseal.json
+
+      - name: The failure was detected
+        shell: bash
+        run: test "${{ steps.bad.outcome }}" = "failure"

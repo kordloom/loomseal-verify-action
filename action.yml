@@ -1,0 +1,73 @@
+name: "LoomSeal Verify"
+description: "Verify a LoomSeal evidence bundle in CI: signed, chained, anchored, spanned, checked offline."
+author: "KordLoom"
+branding:
+  icon: "shield"
+  color: "gray-dark"
+inputs:
+  bundle:
+    description: "Path to the .loomseal.json bundle to verify."
+    required: true
+  evidence:
+    description: "Directory of evidence artifacts to check against the bundle's digests."
+    required: false
+    default: ""
+  fingerprint:
+    description: "Required producer key fingerprint, sha256:<hex>."
+    required: false
+    default: ""
+  version:
+    description: "loomseal release to use, such as v0.5.0. Defaults to the latest release."
+    required: false
+    default: "latest"
+runs:
+  using: "composite"
+  steps:
+    - name: Install loomseal
+      shell: bash
+      run: |
+        set -euo pipefail
+        version="${{ inputs.version }}"
+        if [ "$version" = "latest" ]; then
+          version=$(curl -fsSL https://api.github.com/repos/kordloom/loomseal/releases/latest \
+            | grep -o '"tag_name": *"[^"]*"' | head -1 | cut -d'"' -f4)
+        fi
+        bare="${version#v}"
+        case "${RUNNER_OS}" in
+          Linux) goos=linux ;;
+          macOS) goos=darwin ;;
+          Windows) goos=windows ;;
+          *) echo "unsupported runner OS ${RUNNER_OS}" >&2; exit 1 ;;
+        esac
+        case "${RUNNER_ARCH}" in
+          X64) goarch=amd64 ;;
+          ARM64) goarch=arm64 ;;
+          *) echo "unsupported runner arch ${RUNNER_ARCH}" >&2; exit 1 ;;
+        esac
+        ext=tar.gz
+        if [ "$goos" = "windows" ]; then ext=zip; fi
+        name="loomseal_${bare}_${goos}_${goarch}.${ext}"
+        base="https://github.com/kordloom/loomseal/releases/download/${version}"
+        dir="${RUNNER_TEMP}/loomseal-${bare}"
+        mkdir -p "$dir"
+        curl -fsSL -o "${dir}/${name}" "${base}/${name}"
+        curl -fsSL -o "${dir}/SHA256SUMS" "${base}/SHA256SUMS"
+        # A tool that exists to check evidence gets its own download checked too.
+        cd "$dir"
+        line=$(grep "[ ]${name}\$" SHA256SUMS)
+        if command -v sha256sum >/dev/null 2>&1; then
+          echo "$line" | sha256sum -c -
+        else
+          echo "$line" | shasum -a 256 -c -
+        fi
+        if [ "$ext" = "zip" ]; then tar -xf "$name"; else tar -xzf "$name"; fi
+        chmod +x loomseal 2>/dev/null || true
+        echo "$dir" >> "$GITHUB_PATH"
+    - name: Verify the bundle
+      shell: bash
+      run: |
+        set -euo pipefail
+        args=(verify "${{ inputs.bundle }}")
+        if [ -n "${{ inputs.evidence }}" ]; then args+=(--evidence "${{ inputs.evidence }}"); fi
+        if [ -n "${{ inputs.fingerprint }}" ]; then args+=(--fingerprint "${{ inputs.fingerprint }}"); fi
+        loomseal "${args[@]}"

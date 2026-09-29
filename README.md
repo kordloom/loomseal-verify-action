@@ -43,6 +43,12 @@ a measurement. What it deliberately does not prove is documented in
 against the published SHA256SUMS, and runs entirely on the runner: no account, no service,
 and no network access during verification itself.
 
+## History
+
+This action was developed privately before its first public release, v1.0.1. The first commit
+holds the code of v1.0.0, tagged `snapshot/v1.0.0`. Every release from v1.0.1 on comes from this
+repository.
+
 ## License
 
 Apache-2.0, the same as the verifier it runs.

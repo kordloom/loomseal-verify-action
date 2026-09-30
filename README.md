@@ -31,7 +31,7 @@ With evidence artifacts and a pinned producer key:
 | `bundle`      | yes      |          | Path to the `.loomseal.json` bundle to verify        |
 | `evidence`    | no       |          | Directory of artifacts checked against the digests   |
 | `fingerprint` | no       |          | Required producer key fingerprint, `sha256:<hex>`    |
-| `version`     | no       | `latest` | loomseal release to install, such as `v0.5.0`        |
+| `version`     | no       | `latest` | loomseal release to install, `v1.5.4` or later       |
 
 ## What the check proves
 
@@ -39,14 +39,15 @@ A verified bundle proves the producer holding the signing key assembled these ex
 that the claims sit in an append-only order not rewritten since its heads were anchored, and,
 when span claims are present, that the population arithmetic holds, with coverage reported as
 a measurement. What it deliberately does not prove is documented in
-[the spec](https://loomseal.com/spec). The action downloads the release binary, checks it
-against the published SHA256SUMS, and runs entirely on the runner: no account, no service,
-and no network access during verification itself.
+[the spec](https://loomseal.com/spec). The action downloads the release binary, checks that
+the release's SHA256SUMS carries LoomSeal's own Sigstore signature and that the binary matches
+it, and runs entirely on the runner: no account, no service, and no network access during
+verification itself.
 
 ## History
 
-This action was developed privately before its first public release, v1.0.1. The first commit
-holds the code of v1.0.0, tagged `snapshot/v1.0.0`. Every release from v1.0.1 on comes from this
+The first commit holds the code of v1.0.0, tagged `snapshot/v1.0.0`, which was published from an
+earlier repository that is no longer public. Every release from v1.0.1 on comes from this
 repository.
 
 ## License
